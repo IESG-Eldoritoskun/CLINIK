@@ -73,43 +73,9 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // Botón de notificaciones con badge
-                  Stack(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.black.withOpacity(0.06),
-                          ),
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black12, blurRadius: 4),
-                          ],
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.notifications_none_outlined,
-                            color: AppColors.prussianBlue,
-                          ),
-                          onPressed: () {},
-                        ),
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            color: AppColors.warning,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_outlined, size: 28),
+                    onPressed: () => Navigator.pushNamed(context, '/medical-followup'),
                   ),
                 ],
               ),

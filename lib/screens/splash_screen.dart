@@ -13,10 +13,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Redirige automáticamente al login después de 3 segundos.
+    // Redirige automáticamente al onboarding después de 3 segundos.
     Timer(const Duration(seconds: 3), () {
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushReplacementNamed('/onboarding');
       }
     });
   }

@@ -38,6 +38,7 @@ class ClinikApp extends StatelessWidget {
       ),
       home: const SplashScreen(),
       routes: {
+        '/onboarding': (context) => const OnboardingScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const MainWrapperScreen(),
@@ -68,7 +69,7 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
   // Lista de las 4 pantallas principales
   final List<Widget> _screens = [
     // Pestaña 0: Inicio (Mientras tu compañero la termina, puedes poner un placeholder)
-    const Center(child: const HomeScreen()),
+    const Center(child: HomeScreen()),
     
     // Pestaña 1: Registros (Tu Pantalla 6)
     const RecordsScreen(),

@@ -1,4 +1,3 @@
-import 'package:clinik/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 
@@ -263,14 +262,7 @@ class OnboardingScreen extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                //const RegisterGlucoseScreen(),
-                                const HomeScreen(),
-                          ),
-                        );
+                        Navigator.of(context).pushReplacementNamed('/login');
                       },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -299,7 +291,7 @@ class OnboardingScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 48,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () => Navigator.of(context).pushNamed('/register'),
                       child: const Text(
                         'Registrate ahora',
                         style: TextStyle(
