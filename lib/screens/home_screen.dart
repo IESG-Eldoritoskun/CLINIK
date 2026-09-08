@@ -3,6 +3,7 @@ import 'package:clinik/screens/patient_activity_screen.dart';
 import 'package:clinik/screens/register_glucose_screen.dart';
 import 'package:clinik/screens/patient_nutrition_screen.dart';
 import 'package:clinik/screens/register_pressure_screen.dart';
+import 'package:clinik/widgets/medical_chat_floating_button.dart';
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 
@@ -13,6 +14,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: const MedicalChatFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
