@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showMessage('Completa correo y contrasena');
+      _showMessage('Completa correo y contraseña');
       return;
     }
 
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on AuthException catch (error) {
       _showMessage(error.message);
     } catch (_) {
-      _showMessage('No se pudo iniciar sesion. Intenta de nuevo.');
+      _showMessage('No se pudo iniciar sesión. Intenta de nuevo.');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -61,12 +61,12 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
+            child: Column(
+              children: [
+                // 1. Logo fijo en la parte superior
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                  child: Row(
                     children: [
                       Container(
                         width: 40,
@@ -89,108 +89,145 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
-                  Text(
-                    'Iniciar sesion',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: AppColors.prussianBlue,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Accede a tu cuenta para continuar con tu seguimiento medico.',
-                    style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.35),
-                  ),
-                  const SizedBox(height: 28),
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: _fieldDecoration(
-                      label: 'Correo electronico',
-                      hint: 'Ejemplo: maria.lopez@example.com',
-                      prefix: Icons.mail_outline,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: _fieldDecoration(
-                      label: 'Contrasena',
-                      hint: 'Ejemplo: ••••••••••••••••',
-                      prefix: Icons.lock_outline,
-                      suffix: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          color: Colors.grey.shade600,
+                ),
+
+                // 2. Contenido con distribución proporcional equilibrada
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight - 24,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Bloque Superior: Títulos y campos de texto
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Iniciar sesión',
+                                    style: theme.textTheme.headlineSmall?.copyWith(
+                                      color: AppColors.prussianBlue,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Accede a tu cuenta para continuar con tu seguimiento médico.',
+                                    style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.35),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  TextField(
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    decoration: _fieldDecoration(
+                                      label: 'Correo electrónico',
+                                      hint: 'Ejemplo: maria.lopez@example.com',
+                                      prefix: Icons.mail_outline,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TextField(
+                                    controller: _passwordController,
+                                    obscureText: _obscurePassword,
+                                    decoration: _fieldDecoration(
+                                      label: 'Contraseña',
+                                      hint: 'Ejemplo: ••••••••••••••••',
+                                      prefix: Icons.lock_outline,
+                                      suffix: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _obscurePassword = !_obscurePassword;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: () {},
+                                      child: const Text('Olvidé mi contraseña'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Bloque Inferior: Botones y enlaces de registro
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const SizedBox(height: 24),
+                                  SizedBox(
+                                    height: 52,
+                                    child: FilledButton(
+                                      onPressed: _isLoading ? null : _handleLogin,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                        elevation: 0,
+                                      ),
+                                      child: _isLoading
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                            )
+                                          : const Text(
+                                              'Iniciar sesión',
+                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    height: 52,
+                                    child: OutlinedButton.icon(
+                                      onPressed: _isLoading ? null : _handleLogin,
+                                      icon: const Icon(Icons.g_mobiledata, size: 24),
+                                      label: const Text(
+                                        'Continuar con Google',
+                                        style: TextStyle(fontWeight: FontWeight.w600),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                                        foregroundColor: AppColors.prussianBlue,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text('¿No tienes cuenta?', style: TextStyle(color: Colors.black54)),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pushNamed('/register'),
+                                        child: const Text('Crear una'),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {},
-                      child: const Text('Olvide mi contrasena'),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text(
-                              'Iniciar sesion',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 52,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      icon: const Icon(Icons.g_mobiledata, size: 24),
-                      label: const Text(
-                        'Continuar con Google',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
-                        foregroundColor: AppColors.prussianBlue,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('No tienes cuenta?', style: TextStyle(color: Colors.black54)),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pushNamed('/register'),
-                        child: const Text('Crear una'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
