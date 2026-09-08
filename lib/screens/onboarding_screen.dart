@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_colors.dart';
 
 class OnboardingScreen extends StatelessWidget {
@@ -22,18 +23,10 @@ class OnboardingScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
+                      SizedBox(
                         width: 40,
                         height: 40,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.favorite,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                        child: SvgPicture.asset('assets/clinik_logo.svg'),
                       ),
                       const SizedBox(width: 8),
                       RichText(
