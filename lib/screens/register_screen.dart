@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
+import '../core/supabase_services.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,6 +18,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+  DateTime? _birthDate;
 
   @override
   void dispose() {
@@ -26,8 +30,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleContinue() {
-    Navigator.of(context).pushReplacementNamed('/home');
+  Future<void> _handleContinue() async {
+    final fullName = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (fullName.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      _showMessage('Completa todos los campos');
+      return;
+    }
+
+    if (password != confirmPassword) {
+      _showMessage('Las contrasenas no coinciden');
+      return;
+    }
+
+    if (_birthDate == null) {
+      _showMessage('Selecciona fecha de nacimiento');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await SupabaseServices.signUpPaciente(
+        email: email,
+        password: password,
+        fullName: fullName,
+        birthDate: _birthDate!,
+      );
+
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushReplacementNamed('/home');
+    } on AuthException catch (error) {
+      _showMessage(error.message);
+    } on PostgrestException catch (error) {
+      _showMessage(error.message);
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -125,19 +173,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  InkWell(
+                    onTap: _isLoading ? null : _pickBirthDate,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InputDecorator(
+                      decoration: _fieldDecoration(
+                        label: 'Fecha de nacimiento',
+                        prefix: Icons.cake_outlined,
+                      ),
+                      child: Text(
+                        _birthDate == null ? 'Seleccionar fecha' : _formatDate(_birthDate!),
+                        style: TextStyle(
+                          color: _birthDate == null ? Colors.black45 : AppColors.prussianBlue,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   SizedBox(
                     height: 52,
                     child: FilledButton(
-                      onPressed: _handleContinue,
+                      onPressed: _isLoading ? null : _handleContinue,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text(
-                        'Registrarse',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text(
+                              'Registrarse',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -164,6 +236,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final initialDate = _birthDate ?? DateTime(now.year - 30, now.month, now.day);
+
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: now,
+    );
+
+    if (pickedDate != null) {
+      setState(() => _birthDate = pickedDate);
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year.toString().padLeft(4, '0');
+    return '$day/$month/$year';
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   InputDecoration _fieldDecoration({

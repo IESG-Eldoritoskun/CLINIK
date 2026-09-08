@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
+import '../core/supabase_services.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,6 +15,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
   bool _medRemindersEnabled = true;
   bool _apptRemindersEnabled = true;
+  bool _isSigningOut = false;
+
+  Future<void> _handleSignOut() async {
+    setState(() => _isSigningOut = true);
+
+    try {
+      await SupabaseServices.signOut();
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } on AuthException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('No se pudo cerrar sesion. Intenta de nuevo.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSigningOut = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -385,12 +410,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     side: const BorderSide(color: AppColors.critical, width: 1.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  onPressed: () {},
+                  onPressed: _isSigningOut ? null : _handleSignOut,
                   icon: const Icon(Icons.logout, color: AppColors.critical),
-                  label: const Text(
-                    'Cerrar sesión',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.critical),
-                  ),
+                  label: _isSigningOut
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.critical,
+                          ),
+                        )
+                      : const Text(
+                          'Cerrar sesión',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.critical),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -454,5 +488,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.prussianBlue),
       ),
     );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

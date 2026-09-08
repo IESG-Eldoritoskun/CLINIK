@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
+import '../core/supabase_services.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController(text: 'maria.lopez@example.com');
   final TextEditingController _passwordController = TextEditingController(text: '••••••••••••••••');
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -20,8 +23,32 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    Navigator.of(context).pushReplacementNamed('/home');
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showMessage('Completa correo y contrasena');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await SupabaseServices.signIn(email: email, password: password);
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushReplacementNamed('/home');
+    } on AuthException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('No se pudo iniciar sesion. Intenta de nuevo.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -115,22 +142,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     height: 52,
                     child: FilledButton(
-                      onPressed: _handleLogin,
+                      onPressed: _isLoading ? null : _handleLogin,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text(
-                        'Iniciar sesion',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text(
+                              'Iniciar sesion',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 52,
                     child: OutlinedButton.icon(
-                      onPressed: _handleLogin,
+                      onPressed: _isLoading ? null : _handleLogin,
                       icon: const Icon(Icons.g_mobiledata, size: 24),
                       label: const Text(
                         'Continuar con Google',
@@ -161,6 +194,10 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   InputDecoration _fieldDecoration({

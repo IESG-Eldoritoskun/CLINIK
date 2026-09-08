@@ -1,6 +1,7 @@
 import 'package:clinik/screens/home_screen.dart';
 import 'package:clinik/screens/onboarding_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/app_colors.dart';
 
 // Importa tus pantallas
@@ -19,7 +20,31 @@ import 'widgets/main_bottom_navigation.dart';
 // import 'screens/glucose_screen.dart';
 // import 'screens/pressure_screen.dart';
 
-void main() {
+const _supabaseUrl = String.fromEnvironment(
+  'SUPABASE_URL',
+  defaultValue: String.fromEnvironment('NEXT_PUBLIC_SUPABASE_URL'),
+);
+const _supabaseAnonKey = String.fromEnvironment(
+  'SUPABASE_ANON_KEY',
+  defaultValue: String.fromEnvironment('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+);
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (_supabaseUrl.isEmpty || _supabaseAnonKey.isEmpty) {
+    throw Exception(
+      'Faltan variables de Supabase. '
+      'Usa --dart-define=NEXT_PUBLIC_SUPABASE_URL=... '
+      '--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=... ',
+    );
+  }
+
+  await Supabase.initialize(
+    url: _supabaseUrl,
+    anonKey: _supabaseAnonKey,
+  );
+
   runApp(const ClinikApp());
 }
 

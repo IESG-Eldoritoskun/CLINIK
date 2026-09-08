@@ -7,19 +7,31 @@
         {
             "name": "innovationFest_2026",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "toolArgs": [
+                "--dart-define=NEXT_PUBLIC_SUPABASE_URL=https://muucxrhipdkumwngepmx.supabase.co",
+                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR"
+            ]
         },
         {
             "name": "innovationFest_2026 (profile mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "toolArgs": [
+                "--dart-define=NEXT_PUBLIC_SUPABASE_URL=https://muucxrhipdkumwngepmx.supabase.co",
+                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR"
+            ]
         },
         {
             "name": "innovationFest_2026 (release mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "toolArgs": [
+                "--dart-define=NEXT_PUBLIC_SUPABASE_URL=https://muucxrhipdkumwngepmx.supabase.co",
+                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR"
+            ]
         }
     ]
 }
