@@ -1,7 +1,6 @@
 import 'package:clinik/screens/home_screen.dart';
 import 'package:clinik/screens/nutrition_score_screen.dart';
 import 'package:clinik/screens/onboarding_screen.dart';
-import 'package:clinik/screens/patient_nutrition_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/app_colors.dart';
