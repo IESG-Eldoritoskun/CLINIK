@@ -19,6 +19,7 @@ class MedicalChatFloatingButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
+      heroTag: null,
       onPressed: () => _openMedicalChat(context),
       backgroundColor: const Color(0xFF00685F),
       elevation: 6,

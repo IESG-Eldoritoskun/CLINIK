@@ -101,28 +101,26 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
     _currentIndex = widget.initialIndex;
   }
 
-  // Lista de las 4 pantallas principales
-  final List<Widget> _screens = [
-    // Pestaña 0: Inicio (Mientras tu compañero la termina, puedes poner un placeholder)
-    const Center(child: HomeScreen()),
-    
-    // Pestaña 1: Registros (Tu Pantalla 6)
-    const RecordsScreen(),
-    
-    // Pestaña 2: Medicamentos (Tu Pantalla 5)
-    const MedicationsScreen(),
-    
-    // Pestaña 3: Perfil (Tu Pantalla 8)
-    const ProfileScreen(),
-  ];
+  // Construye solo la pestaña activa para evitar cargar 4 pantallas completas al entrar.
+  Widget _buildCurrentScreen() {
+    switch (_currentIndex) {
+      case 0:
+        return const HomeScreen();
+      case 1:
+        return const RecordsScreen();
+      case 2:
+        return const MedicationsScreen();
+      case 3:
+        return const ProfileScreen();
+      default:
+        return const HomeScreen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: _buildCurrentScreen(),
       bottomNavigationBar: MainBottomNavigation(
         currentIndex: _currentIndex,
         onTap: (index) {
