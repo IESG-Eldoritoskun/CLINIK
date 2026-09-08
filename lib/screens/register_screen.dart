@@ -11,10 +11,10 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController _nameController = TextEditingController(text: 'María López');
-  final TextEditingController _emailController = TextEditingController(text: 'maria.lopez@example.com');
-  final TextEditingController _passwordController = TextEditingController(text: '••••••••••••');
-  final TextEditingController _confirmPasswordController = TextEditingController(text: '••••••••••••');
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -125,13 +125,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
                   TextField(
                     controller: _nameController,
-                    decoration: _fieldDecoration(label: 'Nombre completo', prefix: Icons.person_outline),
+                    decoration: _fieldDecoration(
+                      label: 'Nombre completo',
+                      hint: 'Ejemplo: María López',
+                      prefix: Icons.person_outline,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: _fieldDecoration(label: 'Correo electronico', prefix: Icons.mail_outline),
+                    decoration: _fieldDecoration(
+                      label: 'Correo electronico',
+                      hint: 'Ejemplo: maria.lopez@example.com',
+                      prefix: Icons.mail_outline,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   TextField(
@@ -139,6 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: _obscurePassword,
                     decoration: _fieldDecoration(
                       label: 'Contrasena',
+                      hint: 'Ejemplo: ••••••••••••',
                       prefix: Icons.lock_outline,
                       suffix: IconButton(
                         icon: Icon(
@@ -159,6 +168,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: _obscureConfirmPassword,
                     decoration: _fieldDecoration(
                       label: 'Confirmar contrasena',
+                      hint: 'Repite tu contrasena',
                       prefix: Icons.verified_user_outlined,
                       suffix: IconButton(
                         icon: Icon(
@@ -268,10 +278,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   InputDecoration _fieldDecoration({
     required String label,
     required IconData prefix,
+    String? hint,
     Widget? suffix,
   }) {
     return InputDecoration(
       labelText: label,
+      hintText: hint,
       labelStyle: const TextStyle(color: Colors.black54),
       prefixIcon: Icon(prefix, size: 20, color: Colors.grey.shade600),
       suffixIcon: suffix,

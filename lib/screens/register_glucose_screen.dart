@@ -45,7 +45,7 @@ class _RegisterGlucoseScreenState extends State<RegisterGlucoseScreen> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.prussianBlue.withOpacity(0.15),
+                    color: AppColors.prussianBlue.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -201,7 +201,7 @@ class _RegisterGlucoseScreenState extends State<RegisterGlucoseScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withOpacity(0.06)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color.fromRGBO(0, 122, 100, 0.05),
@@ -501,7 +501,7 @@ class _RegisterGlucoseScreenState extends State<RegisterGlucoseScreen> {
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
-                : Colors.black.withOpacity(0.12),
+                : Colors.black.withValues(alpha: 0.12),
           ),
         ),
         child: Row(
@@ -559,7 +559,7 @@ class _RegisterGlucoseScreenState extends State<RegisterGlucoseScreen> {
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
-                : Colors.black.withOpacity(0.12),
+                : Colors.black.withValues(alpha: 0.12),
             width: isSelected ? 2 : 1,
           ),
         ),

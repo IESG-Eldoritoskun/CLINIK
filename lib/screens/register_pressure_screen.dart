@@ -48,7 +48,7 @@ class _RegisterPressureScreenState extends State<RegisterPressureScreen> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.prussianBlue.withOpacity(0.15),
+                    color: AppColors.prussianBlue.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -283,7 +283,7 @@ class _RegisterPressureScreenState extends State<RegisterPressureScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.black.withOpacity(0.06)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   children: [
@@ -382,7 +382,7 @@ class _RegisterPressureScreenState extends State<RegisterPressureScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.aliceBlue,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.black.withOpacity(0.04)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +391,7 @@ class _RegisterPressureScreenState extends State<RegisterPressureScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.prussianBlue.withOpacity(0.2),
+                        color: AppColors.prussianBlue.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 22),
@@ -477,7 +477,7 @@ class _RegisterPressureScreenState extends State<RegisterPressureScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(0.08), width: 1.5),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.08), width: 1.5),
         boxShadow: const [
           BoxShadow(
             color: Color.fromRGBO(0, 122, 100, 0.04),

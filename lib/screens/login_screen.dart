@@ -11,8 +11,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController(text: 'maria.lopez@example.com');
-  final TextEditingController _passwordController = TextEditingController(text: '••••••••••••••••');
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -108,6 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: _fieldDecoration(
                       label: 'Correo electronico',
+                      hint: 'Ejemplo: maria.lopez@example.com',
                       prefix: Icons.mail_outline,
                     ),
                   ),
@@ -117,6 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: _fieldDecoration(
                       label: 'Contrasena',
+                      hint: 'Ejemplo: ••••••••••••••••',
                       prefix: Icons.lock_outline,
                       suffix: IconButton(
                         icon: Icon(
@@ -203,10 +205,12 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _fieldDecoration({
     required String label,
     required IconData prefix,
+    String? hint,
     Widget? suffix,
   }) {
     return InputDecoration(
       labelText: label,
+      hintText: hint,
       labelStyle: const TextStyle(color: Colors.black54),
       prefixIcon: Icon(prefix, size: 20, color: Colors.grey.shade600),
       suffixIcon: suffix,
