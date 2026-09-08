@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
 import '../core/supabase_services.dart';
@@ -16,6 +17,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _medRemindersEnabled = true;
   bool _apptRemindersEnabled = true;
   bool _isSigningOut = false;
+  final TextEditingController _curpController = TextEditingController();
+  final TextEditingController _nssController = TextEditingController();
+
+  @override
+  void dispose() {
+    _curpController.dispose();
+    _nssController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleSignOut() async {
     setState(() => _isSigningOut = true);
@@ -189,6 +199,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const Divider(height: 20),
 
+                    _buildMedicalInputField(
+                      icon: Icons.badge_outlined,
+                      label: 'CURP (México)',
+                      controller: _curpController,
+                      hintText: 'Ej. GODE561231HDFRRN09',
+                      maxLength: 18,
+                      keyboardType: TextInputType.text,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _buildMedicalInputField(
+                      icon: Icons.numbers,
+                      label: 'NSS (México)',
+                      controller: _nssController,
+                      hintText: 'Ej. 12345678901',
+                      maxLength: 11,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    const Divider(height: 20),
+
                     // Diagnósticos
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -268,53 +302,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     // Switch Notificaciones
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AppColors.primary,
-                      title: const Text(
-                        'Notificaciones generales',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.prussianBlue),
+                    Material(
+                      color: Colors.transparent,
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeThumbColor: AppColors.primary,
+                        title: const Text(
+                          'Notificaciones generales',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.prussianBlue),
+                        ),
+                        value: _notificationsEnabled,
+                        onChanged: (val) => setState(() => _notificationsEnabled = val),
                       ),
-                      value: _notificationsEnabled,
-                      onChanged: (val) => setState(() => _notificationsEnabled = val),
                     ),
                     const Divider(height: 12),
 
                     // Switch Recordatorios de medicamentos
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AppColors.primary,
-                      title: const Text(
-                        'Recordatorios de medicamentos',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.prussianBlue),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Wrap(
-                          spacing: 6,
-                          children: [
-                            _buildTimeChip('08:00'),
-                            _buildTimeChip('14:00'),
-                            _buildTimeChip('20:00'),
-                          ],
+                    Material(
+                      color: Colors.transparent,
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeThumbColor: AppColors.primary,
+                        title: const Text(
+                          'Recordatorios de medicamentos',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.prussianBlue),
                         ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Wrap(
+                            spacing: 6,
+                            children: [
+                              _buildTimeChip('08:00'),
+                              _buildTimeChip('14:00'),
+                              _buildTimeChip('20:00'),
+                            ],
+                          ),
+                        ),
+                        value: _medRemindersEnabled,
+                        onChanged: (val) => setState(() => _medRemindersEnabled = val),
                       ),
-                      value: _medRemindersEnabled,
-                      onChanged: (val) => setState(() => _medRemindersEnabled = val),
                     ),
                     const Divider(height: 12),
 
                     // Switch Recordatorios de citas
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AppColors.primary,
-                      title: const Text(
-                        'Recordatorios de citas médicas',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.prussianBlue),
+                    Material(
+                      color: Colors.transparent,
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeThumbColor: AppColors.primary,
+                        title: const Text(
+                          'Recordatorios de citas médicas',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.prussianBlue),
+                        ),
+                        subtitle: const Text('Aviso 24 hrs antes', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        value: _apptRemindersEnabled,
+                        onChanged: (val) => setState(() => _apptRemindersEnabled = val),
                       ),
-                      subtitle: const Text('Aviso 24 hrs antes', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      value: _apptRemindersEnabled,
-                      onChanged: (val) => setState(() => _apptRemindersEnabled = val),
                     ),
                   ],
                 ),
@@ -378,23 +421,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Divider(height: 20),
 
                     // Privacidad
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
-                      title: const Text('Privacidad y protección de datos', style: TextStyle(fontSize: 14, color: Colors.black87)),
-                      subtitle: const Text('Cumplimiento NOM e información protegida', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                      onTap: () {},
+                    Material(
+                      color: Colors.transparent,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
+                        title: const Text('Privacidad y protección de datos', style: TextStyle(fontSize: 14, color: Colors.black87)),
+                        subtitle: const Text('Cumplimiento NOM e información protegida', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                        onTap: () {},
+                      ),
                     ),
                     const Divider(height: 12),
 
                     // Cambiar PIN
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.fingerprint, color: AppColors.primary, size: 20),
-                      title: const Text('Cambiar PIN / Acceso biométrico', style: TextStyle(fontSize: 14, color: Colors.black87)),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                      onTap: () {},
+                    Material(
+                      color: Colors.transparent,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.fingerprint, color: AppColors.primary, size: 20),
+                        title: const Text('Cambiar PIN / Acceso biométrico', style: TextStyle(fontSize: 14, color: Colors.black87)),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                        onTap: () {},
+                      ),
                     ),
                   ],
                 ),
@@ -490,7 +539,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildMedicalInputField({
+    required IconData icon,
+    required String label,
+    required TextEditingController controller,
+    required String hintText,
+    required int maxLength,
+    required TextInputType keyboardType,
+    required List<TextInputFormatter> inputFormatters,
+  }) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 20, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(maxLength),
+                      ...inputFormatters,
+                    ],
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.prussianBlue,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: hintText,
+                      hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                      isDense: true,
+                      counterText: '',
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.black.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.black.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

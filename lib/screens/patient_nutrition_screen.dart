@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
+import 'nutrition_score_screen.dart';
 
 class PatientNutritionScreen extends StatefulWidget {
   const PatientNutritionScreen({super.key});
@@ -236,7 +237,12 @@ class _PatientNutritionScreenState extends State<PatientNutritionScreen> {
             height: 50,
             child: ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).pushNamed('/day-summary');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NutritionScoreScreen(),
+                  ),
+                );
               },
               icon: const Icon(Icons.task_alt_outlined, color: Colors.white, size: 20),
               label: const Text(
