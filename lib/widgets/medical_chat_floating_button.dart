@@ -7,7 +7,11 @@ class MedicalChatFloatingButton extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black12,
+      enableDrag: true,
+      isDismissible: true,
       builder: (context) => const DoctorChatSheet(),
     );
   }
@@ -24,10 +28,7 @@ class MedicalChatFloatingButton extends StatelessWidget {
           Positioned(
             right: 0,
             top: 0,
-            child: CircleAvatar(
-              radius: 4,
-              backgroundColor: Color(0xFF6FFBBE),
-            ),
+            child: CircleAvatar(radius: 4, backgroundColor: Color(0xFF6FFBBE)),
           ),
         ],
       ),
@@ -63,24 +64,27 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
+    final maxSheetHeight = mediaQuery.size.height * 0.9;
 
     return Container(
-      height: mediaQuery.size.height * 0.88,
+      height: maxSheetHeight,
+      constraints: BoxConstraints(maxHeight: maxSheetHeight),
       decoration: const BoxDecoration(
         color: Color(0xFFFAF8FF),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: Scaffold(
-          backgroundColor: const Color(0xFFFAF8FF),
-          appBar: _buildHeader(context),
-          body: Column(
+        child: SafeArea(
+          top: false,
+          child: Column(
             children: [
+              _buildHeader(context),
               _buildClinicalRecordBanner(),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(16),
+                  physics: const BouncingScrollPhysics(),
                   children: [
                     _buildDateDivider('Hoy, 7 de septiembre'),
                     const SizedBox(height: 12),
@@ -109,20 +113,21 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
     );
   }
 
-  PreferredSizeWidget _buildHeader(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 1,
-      automaticallyImplyLeading: false,
-      titleSpacing: 12,
-      title: Row(
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: Colors.white,
+      child: Row(
         children: [
           Stack(
             children: [
               const CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuAG6ePIktlPLkYnd5yvbYAszWhYcVy8LKE3HUVMM8jn5ga7vdBcFz2551fENMo6V_5gko858CTFa9yy5mGwVCTbvProVa1fcsCwU_nmOKZIBbQs3iZ_Tw0aTlRk5XKztyjTPRzgSseCMJklsNLd0LOIFLhNQNBHOPpbirOqFkOqtjL6vtGrsJFTq8H4kNbATNKoj2r-HJCI3t_b0uppWbaP88uO9MYnGKmede3t59BN5R3QpF7oKVwE',
+                backgroundColor: Color(0xFFE8F1F3),
+                child: Icon(
+                  Icons.medical_services,
+                  color: Color(0xFF00685F),
+                  size: 20,
                 ),
               ),
               Positioned(
@@ -166,18 +171,16 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
               ],
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.videocam, color: Color(0xFF00685F)),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Color(0xFF131B2E)),
+            onPressed: () => Navigator.pop(context),
+          ),
         ],
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.videocam, color: Color(0xFF00685F)),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF131B2E)),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ],
     );
   }
 
@@ -193,7 +196,11 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.folder_shared_outlined, color: Color(0xFF00685F), size: 20),
+            child: const Icon(
+              Icons.folder_shared_outlined,
+              color: Color(0xFF00685F),
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -232,68 +239,78 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
     );
   }
 
-Widget _buildDoctorMessage(String text, String time) {
+  Widget _buildDoctorMessage(String text, String time) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Container(
-        // ❌ Antes: maxWidth: 280,
-        // ✅ Ahora:
+      child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 280),
-        padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-            bottomLeft: Radius.circular(4),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(text, style: const TextStyle(fontSize: 13, color: Color(0xFF131B2E))),
-            const SizedBox(height: 4),
-            Text(
-              '$time • Dr. Mendoza',
-              style: const TextStyle(fontSize: 10, color: Color(0xFF50616B)),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+              bottomRight: Radius.circular(16),
+              bottomLeft: Radius.circular(4),
             ),
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF131B2E)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$time • Dr. Mendoza',
+                style: const TextStyle(fontSize: 10, color: Color(0xFF50616B)),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-Widget _buildPatientMessage(String text, String time) {
+
+  Widget _buildPatientMessage(String text, String time) {
     return Align(
       alignment: Alignment.centerRight,
-      child: Container(
-        // ❌ Antes: maxWidth: 280,
-        // ✅ Ahora:
+      child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 280),
-        padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(
-          color: Color(0xFF008378),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(4),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(text, style: const TextStyle(fontSize: 13, color: Colors.white)),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(time, style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                const SizedBox(width: 4),
-                const Icon(Icons.done_all, color: Colors.white70, size: 14),
-              ],
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: const BoxDecoration(
+            color: Color(0xFF008378),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+              bottomLeft: Radius.circular(16),
+              bottomRight: Radius.circular(4),
             ),
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                text,
+                style: const TextStyle(fontSize: 13, color: Colors.white),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time,
+                    style: const TextStyle(fontSize: 10, color: Colors.white70),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.done_all, color: Colors.white70, size: 14),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -359,7 +376,11 @@ Widget _buildPatientMessage(String text, String time) {
         child: Row(
           children: [
             IconButton(
-              icon: Icon(_isPlayingAudio ? Icons.pause_circle_filled : Icons.play_circle_fill),
+              icon: Icon(
+                _isPlayingAudio
+                    ? Icons.pause_circle_filled
+                    : Icons.play_circle_fill,
+              ),
               iconSize: 36,
               color: const Color(0xFF00685F),
               onPressed: () {
@@ -375,7 +396,10 @@ Widget _buildPatientMessage(String text, String time) {
                 children: [
                   LinearProgressIndicator(value: 0.3, color: Color(0xFF00685F)),
                   SizedBox(height: 4),
-                  Text('0:12 / 0:42 min', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  Text(
+                    '0:12 / 0:42 min',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -386,7 +410,11 @@ Widget _buildPatientMessage(String text, String time) {
   }
 
   Widget _buildQuickResponses() {
-    final options = ['👍 Todo en orden', '🩸 Nueva medición', '💊 Preguntar receta'];
+    final options = [
+      '👍 Todo en orden',
+      '🩸 Nueva medición',
+      '💊 Preguntar receta',
+    ];
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -417,7 +445,10 @@ Widget _buildPatientMessage(String text, String time) {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFF00685F)),
+            icon: const Icon(
+              Icons.add_circle_outline,
+              color: Color(0xFF00685F),
+            ),
             onPressed: () {},
           ),
           Expanded(
@@ -426,7 +457,10 @@ Widget _buildPatientMessage(String text, String time) {
               decoration: InputDecoration(
                 hintText: 'Escribe tu consulta...',
                 hintStyle: const TextStyle(fontSize: 13),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
