@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -80,14 +81,13 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // ISOTIPO / LOGO CON ANILLOS Y BADGE
+                    // ISOTIPO / LOGO DE LA APP
                     Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Anillo Exterior Decorativo
                         Container(
-                          width: 140,
-                          height: 140,
+                          width: 160,
+                          height: 160,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -96,24 +96,23 @@ class _SplashScreenState extends State<SplashScreen> {
                             ),
                           ),
                         ),
-                        // Círculo Principal usando el azul prusiano de AppColors
                         Container(
-                          width: 100,
-                          height: 100,
+                          width: 120,
+                          height: 120,
+                          padding: const EdgeInsets.all(12),
                           decoration: const BoxDecoration(
-                            color: AppColors.prussianBlue,
+                            color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.add,
-                            color: Colors.white,
-                            size: 48,
+                          child: SvgPicture.asset(
+                            'assets/clinik_logo.svg',
+                            width: 90,
+                            height: 90,
                           ),
                         ),
-                        // Indicator punto superior derecho usando la paleta
                         Positioned(
-                          top: 4,
-                          right: 20,
+                          top: 6,
+                          right: 22,
                           child: Container(
                             width: 14,
                             height: 14,
