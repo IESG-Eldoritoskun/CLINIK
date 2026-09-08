@@ -1,10 +1,10 @@
 import 'package:clinik/screens/home_screen.dart';
-import 'package:clinik/screens/nutrition_score_screen.dart';
 import 'package:clinik/screens/onboarding_screen.dart';
-import 'package:clinik/screens/patient_nutrition_screen.dart';
+import 'package:clinik/screens/nutrition_score_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/app_colors.dart';
+import 'core/local_config.dart';
 
 // Importa tus pantallas
 import 'screens/medications_screen.dart';
@@ -24,11 +24,17 @@ import 'widgets/main_bottom_navigation.dart';
 
 const _supabaseUrl = String.fromEnvironment(
   'SUPABASE_URL',
-  defaultValue: String.fromEnvironment('NEXT_PUBLIC_SUPABASE_URL'),
+  defaultValue: String.fromEnvironment(
+    'NEXT_PUBLIC_SUPABASE_URL',
+    defaultValue: LocalConfig.supabaseUrl,
+  ),
 );
 const _supabaseAnonKey = String.fromEnvironment(
   'SUPABASE_ANON_KEY',
-  defaultValue: String.fromEnvironment('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+  defaultValue: String.fromEnvironment(
+    'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: LocalConfig.supabaseAnonKey,
+  ),
 );
 
 Future<void> main() async {
@@ -38,7 +44,8 @@ Future<void> main() async {
     throw Exception(
       'Faltan variables de Supabase. '
       'Usa --dart-define=NEXT_PUBLIC_SUPABASE_URL=... '
-      '--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=... ',
+      '--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=... '
+      'o configura lib/core/local_config.dart',
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:clinik/screens/register_glucose_screen.dart';
+import 'package:clinik/screens/patient_nutrition_screen.dart';
 import 'package:clinik/screens/register_pressure_screen.dart';
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
@@ -383,49 +384,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              _buildActionButton(
-                icon: Icons.water_drop,
-                iconBg: const Color(0xFFFEF2F2),
-                iconColor: const Color(0xFFDC2626),
-                title: 'Registrar glucosa',
-                subtitle: 'Nivel de azúcar capilar',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const RegisterGlucoseScreen(), // Tu pantalla de Glucosa
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-
-              _buildActionButton(
-                icon: Icons.favorite,
-                iconBg: const Color(0xFFECFDF5),
-                iconColor: AppColors.primary,
-                title: 'Registrar presión',
-                subtitle: 'Tensión sistólica y diastólica',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const RegisterPressureScreen(), // Tu pantalla de Presión
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-
-              _buildActionButton(
-                icon: Icons.medication,
-                iconBg: const Color(0xFFF0FDFA),
-                iconColor: AppColors.primary,
-                title: 'Registrar medicamento',
-                subtitle: 'Confirmar dosis tomada o nueva',
-              ),
+              _buildRegisterMenuButton(context),
               const SizedBox(height: 24),
 
               // 5. SECCIÓN: PRÓXIMAMENTE
@@ -876,6 +835,241 @@ class HomeScreen extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.add, color: AppColors.primary, size: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisterMenuButton(BuildContext context) {
+    return _buildActionButton(
+      icon: Icons.add_circle_outline,
+      iconBg: AppColors.aliceBlue,
+      iconColor: AppColors.primary,
+      title: 'Registrar nueva medición o actividad',
+      subtitle: 'Selecciona el tipo de registro rápido',
+      onTap: () => _showRegisterOptionsSheet(context),
+    );
+  }
+
+  void _showRegisterOptionsSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Registrar nueva medición o\nactividad',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.prussianBlue,
+                                height: 1.2,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Selecciona el tipo de registro rápido',
+                              style: TextStyle(fontSize: 12, color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.aliceBlue,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          splashRadius: 16,
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.close,
+                            size: 17,
+                            color: Color(0xFF8A93A6),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildRegisterOptionTile(
+                    icon: Icons.water_drop,
+                    iconBg: const Color(0xFFFEF2F2),
+                    iconColor: const Color(0xFFDC2626),
+                    title: 'Registrar glucosa',
+                    subtitle: 'Nivel de azúcar capilar',
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterGlucoseScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildRegisterOptionTile(
+                    icon: Icons.favorite,
+                    iconBg: const Color(0xFFECFDF5),
+                    iconColor: AppColors.primary,
+                    title: 'Registrar presión',
+                    subtitle: 'Tensión sistólica y diastólica',
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterPressureScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildRegisterOptionTile(
+                    icon: Icons.medication,
+                    iconBg: const Color(0xFFF0FDFA),
+                    iconColor: AppColors.primary,
+                    title: 'Registrar medicamento',
+                    subtitle: 'Confirmar dosis tomada o nueva',
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Registro de medicamento disponible pronto.'),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildRegisterOptionTile(
+                    icon: Icons.restaurant,
+                    iconBg: const Color(0xFFFFF7ED),
+                    iconColor: const Color(0xFFF97316),
+                    title: 'Registrar alimentos',
+                    subtitle: 'Comidas, snacks y porciones del día',
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PatientNutritionScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildRegisterOptionTile(
+                    icon: Icons.directions_run,
+                    iconBg: const Color(0xFFFEFCE8),
+                    iconColor: const Color(0xFFCA8A04),
+                    title: 'Registrar actividad',
+                    subtitle: 'Caminata, paseo o ejercicio físico',
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Registro de actividad disponible pronto.'),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRegisterOptionTile({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: iconBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 21),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.prussianBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ],
         ),
