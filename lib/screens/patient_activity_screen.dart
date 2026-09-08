@@ -119,7 +119,7 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _loggedActivities.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = _loggedActivities[index];
                     return _buildActivityTile(item);
@@ -140,10 +140,10 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -205,7 +205,7 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -318,14 +318,14 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black.withOpacity(0.06)),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(item['icon'] as IconData, color: color, size: 20),
@@ -371,14 +371,14 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: item.iconColor.withOpacity(0.12),
+              color: item.iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(item.icon, color: item.iconColor, size: 22),
@@ -417,7 +417,7 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: const Column(
         children: [
@@ -487,7 +487,7 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: exerciseOptions.contains(exerciseType) ? exerciseType : exerciseOptions.first,
+                    initialValue: exerciseOptions.contains(exerciseType) ? exerciseType : exerciseOptions.first,
                     decoration: InputDecoration(
                       labelText: 'Tipo de ejercicio',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -525,7 +525,7 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
                       Expanded(
                         child: TextFormField(
                           enabled: false,
-                          initialValue: '${estimatedCalories} kcal',
+                          initialValue: '$estimatedCalories kcal',
                           decoration: InputDecoration(
                             labelText: 'Calorías estimadas',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

@@ -187,7 +187,7 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
 
   Widget _buildClinicalRecordBanner() {
     return Container(
-      color: const Color(0xFFD3E5F1).withOpacity(0.4),
+      color: const Color(0xFFD3E5F1).withValues(alpha: 0.4),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
@@ -422,7 +422,7 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: options.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           return ActionChip(
             label: Text(options[index], style: const TextStyle(fontSize: 12)),

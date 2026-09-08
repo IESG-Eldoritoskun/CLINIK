@@ -99,7 +99,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.white,
                         padding: const EdgeInsets.all(12),
-                        side: BorderSide(color: Colors.black.withOpacity(0.08)),
+                        side: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -338,11 +338,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),

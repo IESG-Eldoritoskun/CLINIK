@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
 
 class RegisterPressureScreen extends StatefulWidget {
@@ -9,9 +10,62 @@ class RegisterPressureScreen extends StatefulWidget {
 }
 
 class _RegisterPressureScreenState extends State<RegisterPressureScreen> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+
   int _systolic = 120;
   int _diastolic = 80;
   int _pulse = 72;
+  bool _isSaving = false;
+
+  Future<void> _savePressureReading() async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('No hay sesión activa para guardar la presión.');
+      }
+
+      final paciente = await _supabase
+          .from('pacientes')
+          .select('id_paciente')
+          .eq('id_usuario', userId)
+          .maybeSingle();
+
+      final pacienteId = paciente?['id_paciente'];
+      if (pacienteId == null) {
+        throw Exception('No se encontró el paciente asociado a tu cuenta.');
+      }
+
+      await _supabase.from('presiones_arteriales').insert({
+        'id_paciente': pacienteId,
+        'sistolica': _systolic,
+        'diastolica': _diastolic,
+        'frecuencia': _pulse,
+        'fecha': DateTime.now().toUtc().toIso8601String(),
+        'origen': 'manual',
+      });
+
+      if (mounted) {
+        _showSuccessModal();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo guardar la presión: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   void _adjustVal(String type, int delta) {
     setState(() {
@@ -434,22 +488,31 @@ class _RegisterPressureScreenState extends State<RegisterPressureScreen> {
                     ),
                     elevation: 2,
                   ),
-                  onPressed: _showSuccessModal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.check_circle_outline, color: Colors.white, size: 24),
-                      SizedBox(width: 8),
-                      Text(
-                        'Guardar registro',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                  onPressed: _isSaving ? null : _savePressureReading,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.8,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.check_circle_outline, color: Colors.white, size: 24),
+                            SizedBox(width: 8),
+                            Text(
+                              'Guardar registro',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
               const SizedBox(height: 20),

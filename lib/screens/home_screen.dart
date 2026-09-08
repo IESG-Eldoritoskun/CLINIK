@@ -5,13 +5,199 @@ import 'package:clinik/screens/patient_nutrition_screen.dart';
 import 'package:clinik/screens/register_pressure_screen.dart';
 import 'package:clinik/widgets/medical_chat_floating_button.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  static String formatMetricDisplay({
+    required String type,
+    required Map<String, dynamic> data,
+  }) {
+    switch (type) {
+      case 'glucosa':
+        final valor = _asNum(data['valor']) ?? _asNum(data['value']);
+        return valor?.toStringAsFixed(valor.truncateToDouble() == valor ? 0 : 1) ?? '--';
+      case 'presion':
+        final sistolica = data['sistolica'] ?? data['systolic'];
+        final diastolica = data['diastolica'] ?? data['diastolic'];
+        if (sistolica == null || diastolica == null) {
+          return '--/--';
+        }
+        return '$sistolica/$diastolica';
+      default:
+        return data['valor']?.toString() ?? '--';
+    }
+  }
+
+  static num? _asNum(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value);
+    return null;
+  }
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+
+  Map<String, dynamic>? _perfil;
+  Map<String, dynamic>? _ultimaGlucosa;
+  Map<String, dynamic>? _ultimaPresion;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeData();
+  }
+
+  Future<void> _loadHomeData() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      return;
+    }
+
+    try {
+      final paciente = await _supabase
+          .from('pacientes')
+          .select()
+          .eq('id_usuario', userId)
+          .maybeSingle();
+
+      final pacienteId = paciente?['id_paciente'] as String?;
+
+      final perfilFuture = _supabase
+          .from('perfiles')
+          .select()
+          .eq('id_usuario', userId)
+          .maybeSingle();
+
+      final glucosaFuture = pacienteId == null
+          ? Future.value(null)
+          : _supabase
+              .from('mediciones')
+              .select()
+              .eq('id_paciente', pacienteId)
+              .eq('tipo', 'glucosa')
+              .order('fecha', ascending: false)
+              .limit(1)
+              .maybeSingle();
+
+      final presionFuture = pacienteId == null
+          ? Future.value(null)
+          : _supabase
+              .from('presiones_arteriales')
+              .select()
+              .eq('id_paciente', pacienteId)
+              .order('fecha', ascending: false)
+              .limit(1)
+              .maybeSingle();
+
+      final List<Future<Map<String, dynamic>?>> futures = [
+        perfilFuture as Future<Map<String, dynamic>?>,
+        glucosaFuture as Future<Map<String, dynamic>?>,
+        presionFuture as Future<Map<String, dynamic>?>,
+      ];
+
+      final results = await Future.wait(futures);
+
+      if (mounted) {
+        setState(() {
+          _perfil = results[0];
+          _ultimaGlucosa = results[1];
+          _ultimaPresion = results[2];
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String get _patientName {
+    final nombre = (_perfil?['nombre'] as String?)?.trim();
+    if (nombre != null && nombre.isNotEmpty) {
+      return nombre;
+    }
+    return 'Paciente';
+  }
+
+  String _formatDateLabel(dynamic value) {
+    if (value == null) return 'Sin registro';
+
+    try {
+      final date = DateTime.tryParse(value.toString());
+      if (date == null) return 'Sin registro';
+
+      final now = DateTime.now();
+      final isToday = date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day;
+
+      if (isToday) {
+        final hour = date.hour.toString().padLeft(2, '0');
+        final minute = date.minute.toString().padLeft(2, '0');
+        return 'Hoy, $hour:$minute';
+      }
+
+      return '${date.day}/${date.month}';
+    } catch (_) {
+      return 'Sin registro';
+    }
+  }
+
+  String _getRangeStatus(String type, Map<String, dynamic>? data) {
+    if (data == null || data.isEmpty) {
+      return 'Sin dato';
+    }
+
+    if (type == 'glucosa') {
+      final valor = HomeScreen._asNum(data['valor']) ?? HomeScreen._asNum(data['value']);
+      if (valor == null) return 'Sin dato';
+      if (valor >= 70 && valor <= 140) return 'En rango';
+      if (valor < 70) return 'Bajo';
+      return 'Fuera de rango';
+    }
+
+    final sistolica = HomeScreen._asNum(data['sistolica']);
+    final diastolica = HomeScreen._asNum(data['diastolica']);
+    if (sistolica == null || diastolica == null) return 'Sin dato';
+    if (sistolica <= 120 && diastolica <= 80) return 'Óptima';
+    if (sistolica <= 129 && diastolica <= 84) return 'Buena';
+    return 'Revisar';
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    final glucosaValue = HomeScreen.formatMetricDisplay(
+      type: 'glucosa',
+      data: (_ultimaGlucosa ?? const <String, dynamic>{}) as Map<String, dynamic>,
+    );
+
+    final presionValue = HomeScreen.formatMetricDisplay(
+      type: 'presion',
+      data: (_ultimaPresion ?? const <String, dynamic>{}) as Map<String, dynamic>,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: const MedicalChatFloatingButton(),
@@ -50,8 +236,8 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             'CLINIK',
                             style: TextStyle(
                               fontSize: 11,
@@ -61,14 +247,14 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Buenos días, María 👋',
-                            style: TextStyle(
+                            'Buenos días, $_patientName 👋',
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: AppColors.prussianBlue,
                             ),
                           ),
-                          Text(
+                          const Text(
                             '¿Cómo va tu día?',
                             style: TextStyle(
                               fontSize: 13,
@@ -259,25 +445,23 @@ class HomeScreen extends StatelessWidget {
               // GRID DE MÉTRICAS (Glucosa y Presión)
               Row(
                 children: [
-                  // Card 1: Glucosa
                   Expanded(
                     child: _buildMetricCard(
                       title: 'GLUCOSA',
-                      value: '105',
-                      unit: 'mg/dL',
-                      time: 'Hoy, 08:30',
-                      status: 'En rango',
+                      value: glucosaValue,
+                      unit: _ultimaGlucosa?['unidad']?.toString() ?? 'mg/dL',
+                      time: _formatDateLabel(_ultimaGlucosa?['fecha']),
+                      status: _getRangeStatus('glucosa', _ultimaGlucosa),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Card 2: Presión
                   Expanded(
                     child: _buildMetricCard(
                       title: 'PRESIÓN',
-                      value: '120/80',
+                      value: presionValue,
                       unit: 'mmHg',
-                      time: 'Hoy, 08:35',
-                      status: 'Óptima',
+                      time: _formatDateLabel(_ultimaPresion?['fecha']),
+                      status: _getRangeStatus('presion', _ultimaPresion),
                       isPressure: true,
                     ),
                   ),
@@ -426,77 +610,84 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFFBEB),
-                            borderRadius: BorderRadius.circular(14),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.alarm,
+                              color: Color(0xFF92400E),
+                              size: 24,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.alarm,
-                            color: Color(0xFF92400E),
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Metformina',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.prussianBlue,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.aliceBlue,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    '850mg',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                                Row(
+                                  children: [
+                                    const Flexible(
+                                      child: Text(
+                                        'Metformina',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.prussianBlue,
+                                        ),
+                                      ),
                                     ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.aliceBlue,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        '850mg',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                RichText(
+                                  text: const TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                    ),
+                                    children: [
+                                      TextSpan(text: 'Próxima toma · '),
+                                      TextSpan(
+                                        text: '20:00',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.prussianBlue,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            RichText(
-                              text: const TextSpan(
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                                children: [
-                                  TextSpan(text: 'Próxima toma · '),
-                                  TextSpan(
-                                    text: '20:00',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.prussianBlue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -620,43 +811,49 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFDAD6),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.emergency,
-                            color: Color(0xFFBA1A1A),
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Contacto de Emergencia',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.prussianBlue,
-                              ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFDAD6),
+                              shape: BoxShape.circle,
                             ),
-                            Text(
-                              'Hijo Carlos · +52 443 123 4567',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
-                              ),
+                            child: const Icon(
+                              Icons.emergency,
+                              color: Color(0xFFBA1A1A),
+                              size: 20,
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Contacto de Emergencia',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.prussianBlue,
+                                  ),
+                                ),
+                                Text(
+                                  'Hijo Carlos · +52 443 123 4567',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     Container(
                       width: 40,
@@ -879,10 +1076,10 @@ class HomeScreen extends StatelessWidget {
     required Color iconColor,
     required String title,
     required String subtitle,
-    VoidCallback? onTap, // <-- Nuevo parámetro opcional
+    VoidCallback? onTap,
   }) {
     return InkWell(
-      onTap: onTap, // <-- Asigna la función de navegación
+      onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -892,43 +1089,46 @@ class HomeScreen extends StatelessWidget {
           border: Border.all(color: Colors.black.withValues(alpha: 0.08), width: 1.5),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: iconBg,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: iconColor, size: 24),
-                ),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.prussianBlue,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: iconBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
             ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.prussianBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
             Container(
               width: 36,
               height: 36,

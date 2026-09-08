@@ -111,7 +111,7 @@ class _PatientNutritionScreenState extends State<PatientNutritionScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -163,10 +163,10 @@ class _PatientNutritionScreenState extends State<PatientNutritionScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -295,7 +295,7 @@ class _PatientNutritionScreenState extends State<PatientNutritionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50.withOpacity(0.5),
+        color: Colors.blue.shade50.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.blue.shade100),
       ),
@@ -349,7 +349,7 @@ class _PatientNutritionScreenState extends State<PatientNutritionScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Column(
         children: [
@@ -394,7 +394,7 @@ class _PatientNutritionScreenState extends State<PatientNutritionScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+              separatorBuilder: (_, _) => const Divider(height: 1, indent: 16, endIndent: 16),
               itemBuilder: (context, index) {
                 final item = items[index];
                 return ListTile(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
 
 class RegisterGlucoseScreen extends StatefulWidget {
@@ -9,9 +10,62 @@ class RegisterGlucoseScreen extends StatefulWidget {
 }
 
 class _RegisterGlucoseScreenState extends State<RegisterGlucoseScreen> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+
   int _glucoseValue = 105;
   String _selectedContext = 'ayuno'; // 'ayuno', 'post', 'otro'
   int _selectedMood = 0; // 0: Bien, 1: Regular, 2: Mal
+  bool _isSaving = false;
+
+  Future<void> _saveGlucoseReading() async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('No hay sesión activa para guardar la glucosa.');
+      }
+
+      final paciente = await _supabase
+          .from('pacientes')
+          .select('id_paciente')
+          .eq('id_usuario', userId)
+          .maybeSingle();
+
+      final pacienteId = paciente?['id_paciente'];
+      if (pacienteId == null) {
+        throw Exception('No se encontró el paciente asociado a tu cuenta.');
+      }
+
+      await _supabase.from('mediciones').insert({
+        'id_paciente': pacienteId,
+        'tipo': 'glucosa',
+        'valor': _glucoseValue,
+        'unidad': 'mg/dL',
+        'fecha': DateTime.now().toUtc().toIso8601String(),
+        'origen': 'manual',
+      });
+
+      if (mounted) {
+        _showSuccessModal();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo guardar la glucosa: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
 
   void _incrementGlucose() {
     setState(() {
@@ -451,22 +505,31 @@ class _RegisterGlucoseScreenState extends State<RegisterGlucoseScreen> {
                     ),
                     elevation: 2,
                   ),
-                  onPressed: _showSuccessModal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.save_outlined, color: Colors.white, size: 24),
-                      SizedBox(width: 8),
-                      Text(
-                        'Guardar registro',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                  onPressed: _isSaving ? null : _saveGlucoseReading,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.8,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.save_outlined, color: Colors.white, size: 24),
+                            SizedBox(width: 8),
+                            Text(
+                              'Guardar registro',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
               const SizedBox(height: 20),

@@ -202,7 +202,7 @@ class _NutritionScoreScreenState extends State<NutritionScoreScreen>
           child: CircularProgressIndicator(
             value: progress.clamp(0.0, 1.0),
             strokeWidth: 14,
-            backgroundColor: Colors.black.withOpacity(0.06),
+            backgroundColor: Colors.black.withValues(alpha: 0.06),
             color: Colors.green.shade600,
             strokeCap: StrokeCap.round,
           ),
@@ -241,10 +241,10 @@ class _NutritionScoreScreenState extends State<NutritionScoreScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -311,14 +311,14 @@ class _NutritionScoreScreenState extends State<NutritionScoreScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
+              color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: iconColor, size: 22),
