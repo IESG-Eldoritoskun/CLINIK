@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
 
 class PatientActivityScreen extends StatefulWidget {
   const PatientActivityScreen({super.key});
 
   static int estimateCaloriesForExercise(String exerciseType, int durationMinutes) {
-    final normalizedType = exerciseType.trim();
+    final normalizedType = normalizeExerciseType(exerciseType);
     final minutes = durationMinutes <= 0 ? 0 : durationMinutes;
 
-    final factor = switch (normalizedType.toLowerCase()) {
+    final factor = switch (normalizedType) {
       'caminata' => 3.125,
       'caminata rápida' => 4.2,
       'correr' => 12.5,
@@ -20,6 +21,40 @@ class PatientActivityScreen extends StatefulWidget {
     };
 
     return (factor * minutes).round();
+  }
+
+  static String normalizeExerciseType(String exerciseType) {
+    final normalized = exerciseType.trim().toLowerCase();
+
+    if (normalized.contains('caminata') &&
+        (normalized.contains('rápida') ||
+            normalized.contains('rapida') ||
+            normalized.contains('buen ritmo'))) {
+      return 'caminata rápida';
+    }
+    if (normalized.contains('caminata') || normalized.contains('caminar')) {
+      return 'caminata';
+    }
+    if (normalized.contains('correr') || normalized.contains('trot')) {
+      return 'correr';
+    }
+    if (normalized.contains('cicl')) {
+      return 'ciclismo';
+    }
+    if (normalized.contains('gimnasio') || normalized.contains('pesas')) {
+      return 'gimnasio';
+    }
+    if (normalized.contains('bail') || normalized.contains('zumba')) {
+      return 'bailar';
+    }
+    if (normalized.contains('estir')) {
+      return 'estiramientos';
+    }
+    if (normalized.contains('yoga')) {
+      return 'yoga';
+    }
+
+    return normalized;
   }
 
   @override
@@ -434,20 +469,6 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
 
   // Bottom Sheet Modal para agregar un nuevo registro
   void _showAddActivityModal(BuildContext context, {String? defaultTitle}) {
-    final exerciseOptions = [
-      'Caminata',
-      'Caminata rápida',
-      'Correr',
-      'Ciclismo',
-      'Gimnasio',
-      'Bailar',
-      'Estiramientos',
-      'Yoga',
-    ];
-
-    final activityController = TextEditingController(text: defaultTitle ?? 'Caminata');
-    final durationController = TextEditingController(text: defaultTitle != null ? '30' : '20');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -455,142 +476,224 @@ class _PatientActivityScreenState extends State<PatientActivityScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (modalContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final exerciseType = activityController.text.isNotEmpty
-                ? activityController.text
-                : exerciseOptions.first;
-            final duration = int.tryParse(durationController.text) ?? 0;
-            final estimatedCalories = PatientActivityScreen.estimateCaloriesForExercise(
-              exerciseType,
-              duration,
-            );
+        return _AddActivitySheet(
+          defaultTitle: defaultTitle,
+          onSave: (title, minutes, calories) {
+            setState(() {
+              _loggedActivities.insert(
+                0,
+                LoggedActivity(
+                  title: title,
+                  category: title,
+                  durationMinutes: minutes,
+                  caloriesBurned: calories,
+                  timeAgo: 'Ahora',
+                  icon: Icons.directions_run,
+                  iconColor: Colors.orange,
+                ),
+              );
+            });
+          },
+        );
+      },
+    );
+  }
+}
 
-            return Padding(
-              padding: EdgeInsets.only(
-                top: 20,
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+class _AddActivitySheet extends StatefulWidget {
+  const _AddActivitySheet({
+    required this.onSave,
+    this.defaultTitle,
+  });
+
+  final String? defaultTitle;
+  final void Function(String title, int minutes, int calories) onSave;
+
+  @override
+  State<_AddActivitySheet> createState() => _AddActivitySheetState();
+}
+
+class _AddActivitySheetState extends State<_AddActivitySheet> {
+  static const List<String> _exerciseOptions = <String>[
+    'Caminata',
+    'Caminata rápida',
+    'Correr',
+    'Ciclismo',
+    'Gimnasio',
+    'Bailar',
+    'Estiramientos',
+    'Yoga',
+  ];
+
+  late final TextEditingController _durationController;
+  late String _selectedExercise;
+  int _durationMinutes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedExercise = widget.defaultTitle != null &&
+            _exerciseOptions.contains(widget.defaultTitle)
+        ? widget.defaultTitle!
+        : _exerciseOptions.first;
+    _durationController = TextEditingController(
+      text: widget.defaultTitle != null ? '30' : '20',
+    );
+    _durationMinutes = int.tryParse(_durationController.text) ?? 0;
+  }
+
+  @override
+  void dispose() {
+    _durationController.dispose();
+    super.dispose();
+  }
+
+  int get _estimatedCalories {
+    return PatientActivityScreen.estimateCaloriesForExercise(
+      _selectedExercise,
+      _durationMinutes,
+    );
+  }
+
+  void _handleSave() {
+    FocusScope.of(context).unfocus();
+    if (_durationMinutes <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa una duración válida en minutos.'),
+        ),
+      );
+      return;
+    }
+
+    widget.onSave(_selectedExercise, _durationMinutes, _estimatedCalories);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Registrar Actividad',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.prussianBlue,
+                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedExercise,
+                decoration: InputDecoration(
+                  labelText: 'Tipo de ejercicio',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                items: _exerciseOptions
+                    .map(
+                      (exercise) => DropdownMenuItem<String>(
+                        value: exercise,
+                        child: Text(exercise),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _selectedExercise = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Registrar Actividad',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.prussianBlue,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: exerciseOptions.contains(exerciseType) ? exerciseType : exerciseOptions.first,
-                    decoration: InputDecoration(
-                      labelText: 'Tipo de ejercicio',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: exerciseOptions
-                        .map(
-                          (exercise) => DropdownMenuItem<String>(
-                            value: exercise,
-                            child: Text(exercise),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        activityController.text = value;
-                        setModalState(() {});
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: durationController,
-                          keyboardType: TextInputType.number,
-                          onChanged: (_) => setModalState(() {}),
-                          decoration: InputDecoration(
-                            labelText: 'Duración (min)',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          enabled: false,
-                          initialValue: '$estimatedCalories kcal',
-                          decoration: InputDecoration(
-                            labelText: 'Calorías estimadas',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        final minutes = int.tryParse(durationController.text) ?? 0;
-                        if (minutes <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Ingresa una duración válida en minutos.'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        final title = activityController.text.trim().isNotEmpty
-                            ? activityController.text.trim()
-                            : 'Actividad física';
-
-                        final calories = PatientActivityScreen.estimateCaloriesForExercise(
-                          title,
-                          minutes,
-                        );
-
+                  Expanded(
+                    child: TextFormField(
+                      controller: _durationController,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (value) {
+                        final parsedMinutes = int.tryParse(value) ?? 0;
+                        if (parsedMinutes == _durationMinutes) return;
                         setState(() {
-                          _loggedActivities.insert(
-                            0,
-                            LoggedActivity(
-                              title: title,
-                              category: title,
-                              durationMinutes: minutes,
-                              caloriesBurned: calories,
-                              timeAgo: 'Ahora',
-                              icon: Icons.directions_run,
-                              iconColor: Colors.orange,
-                            ),
-                          );
+                          _durationMinutes = parsedMinutes;
                         });
-                        Navigator.pop(modalContext);
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                      decoration: InputDecoration(
+                        labelText: 'Duración (min)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text(
-                        'Guardar Registro',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Calorías estimadas',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                      child: Text(
+                        '$_estimatedCalories kcal',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.prussianBlue,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-            );
-          },
-        );
-      },
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _handleSave,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Guardar Registro',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -9,8 +9,10 @@
             "request": "launch",
             "type": "dart",
             "toolArgs": [
+                "--no-enable-impeller",
                 "--dart-define=NEXT_PUBLIC_SUPABASE_URL=https://muucxrhipdkumwngepmx.supabase.co",
-                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR"
+                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR",
+                "--dart-define-from-file=.vscode/dart_defines.local.json"
             ]
         },
         {
@@ -19,8 +21,10 @@
             "type": "dart",
             "flutterMode": "profile",
             "toolArgs": [
+                "--no-enable-impeller",
                 "--dart-define=NEXT_PUBLIC_SUPABASE_URL=https://muucxrhipdkumwngepmx.supabase.co",
-                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR"
+                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR",
+                "--dart-define-from-file=.vscode/dart_defines.local.json"
             ]
         },
         {
@@ -29,8 +33,10 @@
             "type": "dart",
             "flutterMode": "release",
             "toolArgs": [
+                "--no-enable-impeller",
                 "--dart-define=NEXT_PUBLIC_SUPABASE_URL=https://muucxrhipdkumwngepmx.supabase.co",
-                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR"
+                "--dart-define=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_48P6gPXK8u5Evaz-An3QUQ_hSYNK_BR",
+                "--dart-define-from-file=.vscode/dart_defines.local.json"
             ]
         }
     ]

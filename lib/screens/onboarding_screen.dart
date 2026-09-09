@@ -119,9 +119,26 @@ class OnboardingScreen extends StatelessWidget {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(28),
-                              child: Image.network(
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuBTO_rL4Yj0SoOpKic3lUGq1kpVuxSB9y19a_T3xGWd85okjBHzdQQ9sE1T1skXmBjrlfQ4XRxBbVh6l0lIOFdqY3-3uoa4yP5pgkChDdEh8A1OGgdsNuhePwh3w3dvDf6gcZc-7AduJK7d2OaS61z0S32R_wY3mimTyn1L6otx2oHk8A3sWePRXxHSFgg9paySikr0pbrnG-fIys1l7m9AIoLptup4pUY6Xs5ay6DVouNzDnfUg1Lj',
-                                fit: BoxFit.cover,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.asset(
+                                    'assets/abuela.jpeg',
+                                    fit: BoxFit.cover,
+                                  ),
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0x1AE0F2FE),
+                                          Color(0x0AF0FDFA),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

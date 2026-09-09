@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../screens/ai_health_analysis_screen.dart';
+
 class MedicalChatFloatingButton extends StatelessWidget {
   const MedicalChatFloatingButton({super.key});
 
@@ -12,18 +14,27 @@ class MedicalChatFloatingButton extends StatelessWidget {
       barrierColor: Colors.black12,
       enableDrag: true,
       isDismissible: true,
-      builder: (context) => const DoctorChatSheet(),
+      builder: (context) => DoctorChatSheet(
+        onOpenAssistant: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AiHealthAnalysisScreen(),
+            ),
+          );
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FloatingActionButton.extended(
+    return FloatingActionButton(
       heroTag: null,
-      onPressed: () => _openMedicalChat(context),
       backgroundColor: const Color(0xFF00685F),
       elevation: 6,
-      icon: const Stack(
+      onPressed: () => _openMedicalChat(context),
+      child: const Stack(
         children: [
           Icon(Icons.chat_bubble_outline, color: Colors.white, size: 26),
           Positioned(
@@ -33,20 +44,17 @@ class MedicalChatFloatingButton extends StatelessWidget {
           ),
         ],
       ),
-      label: const Text(
-        'Dr. Mendoza',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
-      ),
     );
   }
 }
 
 class DoctorChatSheet extends StatefulWidget {
-  const DoctorChatSheet({super.key});
+  const DoctorChatSheet({
+    super.key,
+    required this.onOpenAssistant,
+  });
+
+  final VoidCallback onOpenAssistant;
 
   @override
   State<DoctorChatSheet> createState() => _DoctorChatSheetState();
@@ -147,38 +155,55 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
             ],
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text(
+                    const Flexible(
+                      child: Text(
                       'Dr. Carlos Mendoza',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF131B2E),
                       ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     ),
                     SizedBox(width: 4),
                     Icon(Icons.verified, color: Color(0xFF00685F), size: 16),
                   ],
                 ),
-                Text(
+                const Text(
                   'Medicina Familiar • Morelia',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: Color(0xFF50616B)),
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.videocam, color: Color(0xFF00685F)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, color: Color(0xFF131B2E)),
-            onPressed: () => Navigator.pop(context),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Videollamada',
+                icon: const Icon(Icons.videocam, color: Color(0xFF00685F)),
+                onPressed: () {},
+              ),
+              IconButton(
+                tooltip: 'Abrir asistente IA',
+                icon: const Icon(Icons.auto_awesome, color: Color(0xFF00685F)),
+                onPressed: widget.onOpenAssistant,
+              ),
+              IconButton(
+                tooltip: 'Cerrar',
+                icon: const Icon(Icons.close, color: Color(0xFF131B2E)),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
         ],
       ),
@@ -378,9 +403,7 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
           children: [
             IconButton(
               icon: Icon(
-                _isPlayingAudio
-                    ? Icons.pause_circle_filled
-                    : Icons.play_circle_fill,
+                _isPlayingAudio ? Icons.pause_circle_filled : Icons.play_circle_fill,
               ),
               iconSize: 36,
               color: const Color(0xFF00685F),
@@ -411,7 +434,7 @@ class _DoctorChatSheetState extends State<DoctorChatSheet> {
   }
 
   Widget _buildQuickResponses() {
-    final options = [
+    const options = [
       '👍 Todo en orden',
       '🩸 Nueva medición',
       '💊 Preguntar receta',

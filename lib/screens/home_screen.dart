@@ -46,8 +46,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   Map<String, dynamic>? _perfil;
+  Map<String, dynamic>? _paciente;
   Map<String, dynamic>? _ultimaGlucosa;
   Map<String, dynamic>? _ultimaPresion;
+  List<Map<String, dynamic>> _medicationReminders = <Map<String, dynamic>>[];
   bool _isLoading = true;
 
   @override
@@ -74,13 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final pacienteId = paciente?['id_paciente'] as String?;
 
-      final perfilFuture = _supabase
+      final Future<Map<String, dynamic>?> perfilFuture = _supabase
           .from('perfiles')
           .select()
           .eq('id_usuario', userId)
-          .maybeSingle();
+          .maybeSingle()
+          .then((value) => value);
 
-      final glucosaFuture = pacienteId == null
+      final Future<Map<String, dynamic>?> glucosaFuture = pacienteId == null
           ? Future.value(null)
           : _supabase
               .from('mediciones')
@@ -89,9 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
               .eq('tipo', 'glucosa')
               .order('fecha', ascending: false)
               .limit(1)
-              .maybeSingle();
+              .maybeSingle()
+              .then((value) => value);
 
-      final presionFuture = pacienteId == null
+      final Future<Map<String, dynamic>?> presionFuture = pacienteId == null
           ? Future.value(null)
           : _supabase
               .from('presiones_arteriales')
@@ -99,12 +103,18 @@ class _HomeScreenState extends State<HomeScreen> {
               .eq('id_paciente', pacienteId)
               .order('fecha', ascending: false)
               .limit(1)
-              .maybeSingle();
+              .maybeSingle()
+              .then((value) => value);
 
-      final List<Future<Map<String, dynamic>?>> futures = [
-        perfilFuture as Future<Map<String, dynamic>?>,
-        glucosaFuture as Future<Map<String, dynamic>?>,
-        presionFuture as Future<Map<String, dynamic>?>,
+      final Future<List<Map<String, dynamic>>> remindersFuture = pacienteId == null
+          ? Future.value(<Map<String, dynamic>>[])
+          : _loadMedicationReminders(pacienteId);
+
+      final List<Future<dynamic>> futures = [
+        perfilFuture,
+        glucosaFuture,
+        presionFuture,
+        remindersFuture,
       ];
 
       final results = await Future.wait(futures);
@@ -112,8 +122,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _perfil = results[0];
+          _paciente = paciente;
           _ultimaGlucosa = results[1];
           _ultimaPresion = results[2];
+          _medicationReminders = List<Map<String, dynamic>>.from(
+            results[3] as List,
+          );
           _isLoading = false;
         });
       }
@@ -130,6 +144,33 @@ class _HomeScreenState extends State<HomeScreen> {
       return nombre;
     }
     return 'Paciente';
+  }
+
+  String get _emergencyContactLabel {
+    final contactName =
+        _asString(_paciente?['contacto_emergencia']) ??
+        _asString(_paciente?['nombre_contacto_emergencia']) ??
+        _asString(_paciente?['responsable_emergencia']);
+    final contactPhone =
+        _asString(_paciente?['telefono_contacto_emergencia']) ??
+        _asString(_paciente?['telefono_emergencia']) ??
+        _asString(_paciente?['celular_contacto_emergencia']);
+
+    if (contactName != null && contactPhone != null) {
+      return '$contactName · $contactPhone';
+    }
+    if (contactName != null) {
+      return contactName;
+    }
+    if (contactPhone != null) {
+      return contactPhone;
+    }
+    return 'No registrado';
+  }
+
+  String? _asString(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
   }
 
   String _formatDateLabel(dynamic value) {
@@ -177,6 +218,259 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Revisar';
   }
 
+  Future<List<Map<String, dynamic>>> _loadMedicationReminders(
+    dynamic patientId,
+  ) async {
+    final candidates = <dynamic>{patientId};
+    final asText = patientId.toString().trim();
+    if (asText.isNotEmpty) {
+      candidates.add(asText);
+      final asInt = int.tryParse(asText);
+      if (asInt != null) {
+        candidates.add(asInt);
+      }
+    }
+
+    for (final candidate in candidates) {
+      try {
+        final data = await _supabase
+            .from('vista_adherencia_tratamientos')
+            .select(
+              'id_tratamiento, medicamento, frecuencia, dosis_esperadas, dosis_tomadas, dosis_falladas, porcentaje_cumplimiento',
+            )
+            .eq('id_paciente', candidate)
+            .limit(4);
+
+        if (data.isNotEmpty) {
+          final rows = List<Map<String, dynamic>>.from(data);
+          rows.sort((a, b) {
+            final missedA = _asInt(a['dosis_falladas']) ?? 0;
+            final missedB = _asInt(b['dosis_falladas']) ?? 0;
+            if (missedA != missedB) return missedB.compareTo(missedA);
+
+            final expectedA = _asInt(a['dosis_esperadas']) ?? 0;
+            final takenA = _asInt(a['dosis_tomadas']) ?? 0;
+            final expectedB = _asInt(b['dosis_esperadas']) ?? 0;
+            final takenB = _asInt(b['dosis_tomadas']) ?? 0;
+            return (expectedB - takenB).compareTo(expectedA - takenA);
+          });
+          return rows.take(3).toList();
+        }
+      } catch (_) {
+        // Intenta con la siguiente variación del id.
+      }
+    }
+
+    return <Map<String, dynamic>>[];
+  }
+
+  int? _asInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
+  String _reminderStatus(Map<String, dynamic> row) {
+    final expected = _asInt(row['dosis_esperadas']) ?? 0;
+    final taken = _asInt(row['dosis_tomadas']) ?? 0;
+    final missed = _asInt(row['dosis_falladas']) ?? 0;
+    final pending = (expected - taken).clamp(0, 999999);
+
+    if (missed > 0) {
+      return 'No tomadas: $missed';
+    }
+    if (pending > 0) {
+      return 'Pendientes: $pending';
+    }
+    if (taken > 0) {
+      return 'Tomadas: $taken';
+    }
+    return 'Sin tomas registradas';
+  }
+
+  _PatientTrafficState _buildPatientTrafficState() {
+    final glucose = HomeScreen._asNum(_ultimaGlucosa?['valor']) ??
+        HomeScreen._asNum(_ultimaGlucosa?['value']);
+    final systolic = HomeScreen._asNum(_ultimaPresion?['sistolica']) ??
+        HomeScreen._asNum(_ultimaPresion?['systolic']);
+    final diastolic = HomeScreen._asNum(_ultimaPresion?['diastolica']) ??
+        HomeScreen._asNum(_ultimaPresion?['diastolic']);
+
+    final latestDates = <DateTime?>[
+      _parseHomeDate(_ultimaGlucosa?['fecha']),
+      _parseHomeDate(_ultimaPresion?['fecha']),
+    ].whereType<DateTime>().toList();
+
+    final latestDate = latestDates.isEmpty
+        ? null
+        : latestDates.reduce((a, b) => a.isAfter(b) ? a : b);
+
+    final daysWithoutUpdate = latestDate == null
+        ? 999
+        : DateTime.now().difference(latestDate).inDays;
+
+    final missedDoses = _medicationReminders
+        .map((row) => _asInt(row['dosis_falladas']) ?? 0)
+        .fold<int>(0, (a, b) => a + b);
+
+    final criticalGlucose = glucose != null && (glucose < 60 || glucose > 250);
+    final reviewGlucose = glucose != null && (glucose < 70 || glucose > 180);
+
+    final criticalPressure = systolic != null &&
+        diastolic != null &&
+        (systolic >= 180 || diastolic >= 120);
+    final reviewPressure = systolic != null &&
+        diastolic != null &&
+        (systolic >= 140 || diastolic >= 90);
+
+    final urgentAdherence = missedDoses >= 3;
+    final reviewAdherence = missedDoses > 0;
+    final staleData = daysWithoutUpdate >= 3;
+    final moderateStaleData = daysWithoutUpdate >= 1;
+    final noClinicalData = glucose == null && (systolic == null || diastolic == null);
+
+    if (criticalGlucose || criticalPressure || urgentAdherence) {
+      return const _PatientTrafficState(
+        level: _TrafficLevel.critical,
+        badge: 'URGENTE',
+        title: 'Atencion inmediata recomendada',
+        summary: 'Hay valores criticos o alta falta de adherencia.',
+        bullet: 'Contacta a tu medico hoy y registra una nueva lectura.',
+      );
+    }
+
+    if (reviewGlucose ||
+        reviewPressure ||
+        reviewAdherence ||
+        staleData ||
+        noClinicalData ||
+        moderateStaleData) {
+      return const _PatientTrafficState(
+        level: _TrafficLevel.warning,
+        badge: 'REVISION',
+        title: 'Necesitas seguimiento cercano',
+        summary: 'Se detectaron datos fuera de meta o faltan registros recientes.',
+        bullet: 'Registra tus mediciones y revisa tu plan de tratamiento.',
+      );
+    }
+
+    return const _PatientTrafficState(
+      level: _TrafficLevel.stable,
+      badge: 'ESTABLE',
+      title: 'Tu seguimiento esta en buen estado',
+      summary: 'Tus signos y adherencia se encuentran dentro de control.',
+      bullet: 'Continua con tus habitos y mantiene tus controles diarios.',
+    );
+  }
+
+  DateTime? _parseHomeDate(dynamic value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString())?.toLocal();
+  }
+
+  String _latestClinicalUpdateLabel() {
+    final latestDates = <DateTime?>[
+      _parseHomeDate(_ultimaGlucosa?['fecha']),
+      _parseHomeDate(_ultimaPresion?['fecha']),
+    ].whereType<DateTime>().toList();
+
+    if (latestDates.isEmpty) {
+      return 'Sin registros';
+    }
+
+    final latest = latestDates.reduce((a, b) => a.isAfter(b) ? a : b);
+    final now = DateTime.now();
+
+    if (latest.year == now.year && latest.month == now.month && latest.day == now.day) {
+      final hh = latest.hour.toString().padLeft(2, '0');
+      final mm = latest.minute.toString().padLeft(2, '0');
+      return 'Hoy, $hh:$mm';
+    }
+
+    return '${latest.day}/${latest.month}';
+  }
+
+  Widget _buildTreatmentNotificationCard(Map<String, dynamic> row) {
+    final medication = _asString(row['medicamento']) ?? 'Medicamento';
+    final frequency = _asString(row['frecuencia']) ?? 'Frecuencia no definida';
+    final status = _reminderStatus(row);
+    final missed = _asInt(row['dosis_falladas']) ?? 0;
+    final pending = ((_asInt(row['dosis_esperadas']) ?? 0) -
+            (_asInt(row['dosis_tomadas']) ?? 0))
+        .clamp(0, 999999);
+
+    final statusColor = missed > 0
+        ? const Color(0xFFB91C1C)
+        : (pending > 0 ? const Color(0xFFB45309) : const Color(0xFF15803D));
+    final statusBg = missed > 0
+        ? const Color(0xFFFEE2E2)
+        : (pending > 0 ? const Color(0xFFFFF7ED) : const Color(0xFFDCFCE7));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.aliceBlue,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.medication_outlined,
+              color: AppColors.primary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  medication,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.prussianBlue,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Frecuencia: $frequency',
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -190,13 +484,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final glucosaValue = HomeScreen.formatMetricDisplay(
       type: 'glucosa',
-      data: (_ultimaGlucosa ?? const <String, dynamic>{}) as Map<String, dynamic>,
+      data: _ultimaGlucosa ?? const <String, dynamic>{},
     );
 
     final presionValue = HomeScreen.formatMetricDisplay(
       type: 'presion',
-      data: (_ultimaPresion ?? const <String, dynamic>{}) as Map<String, dynamic>,
+      data: _ultimaPresion ?? const <String, dynamic>{},
     );
+    final trafficState = _buildPatientTrafficState();
+    final stateColors = trafficState.colors;
+    final stateIcon = trafficState.icon;
+    final latestUpdateLabel = _latestClinicalUpdateLabel();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -219,18 +517,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 48,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          color: AppColors.aliceBlue,
                           border: Border.all(
                             color: AppColors.primary.withValues(alpha: 0.2),
                             width: 2,
                           ),
                         ),
-                        child: const ClipOval(
-                          child: Image(
-                            image: NetworkImage(
-                              'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200',
-                            ),
-                            fit: BoxFit.cover,
-                          ),
+                        child: const Icon(
+                          Icons.person,
+                          color: AppColors.primary,
+                          size: 26,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -280,9 +576,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color.fromRGBO(0, 122, 100, 0.08),
+                      color: stateColors.soft,
                       blurRadius: 20,
                       offset: Offset(0, 4),
                     ),
@@ -304,31 +600,31 @@ class _HomeScreenState extends State<HomeScreen> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFDCFCE7),
+                                  color: stateColors.badgeBackground,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
+                                  children: [
                                     CircleAvatar(
                                       radius: 4,
-                                      backgroundColor: Color(0xFF16A34A),
+                                      backgroundColor: stateColors.dot,
                                     ),
-                                    SizedBox(width: 6),
+                                    const SizedBox(width: 6),
                                     Text(
-                                      'ESTABLE',
+                                      trafficState.badge,
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFF14532D),
+                                        color: stateColors.badgeText,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              const Text(
-                                'Tu seguimiento está al día',
+                              Text(
+                                trafficState.title,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -337,13 +633,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               Row(
-                                children: const [
+                                children: [
                                   Icon(
                                     Icons.schedule,
                                     size: 14,
                                     color: AppColors.primary,
                                   ),
-                                  SizedBox(width: 4),
+                                  const SizedBox(width: 4),
                                   Text(
                                     'Última actualización: ',
                                     style: TextStyle(
@@ -352,7 +648,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'Hoy, 08:35',
+                                    latestUpdateLabel,
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -368,12 +664,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            color: AppColors.aliceBlue,
+                            color: stateColors.iconBackground,
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(
-                            Icons.verified_user,
-                            color: AppColors.primary,
+                          child: Icon(
+                            stateIcon,
+                            color: stateColors.icon,
                             size: 28,
                           ),
                         ),
@@ -383,32 +679,48 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Divider(height: 1, color: Colors.black12),
                     const SizedBox(height: 12),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.sentiment_satisfied_alt,
-                              color: AppColors.primary,
-                              size: 18,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Todo dentro de tus rangos meta',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: stateColors.icon,
+                                size: 18,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  trafficState.bullet,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: stateColors.icon,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Icon(
                           Icons.chevron_right,
-                          color: AppColors.primary,
+                          color: stateColors.icon,
                           size: 20,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      trafficState.summary,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -579,12 +891,12 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildRegisterMenuButton(context),
               const SizedBox(height: 24),
 
-              // 5. SECCIÓN: PRÓXIMAMENTE
+              // 5. SECCIÓN: RECORDATORIOS DE TRATAMIENTO
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
+                children: [
                   Text(
-                    'Próximamente',
+                    'Recordatorios de tratamiento',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -592,212 +904,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Text(
-                    'Recordatorios',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                    '${_medicationReminders.length} activos',
+                    style: const TextStyle(fontSize: 13, color: Colors.black54),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-
-              // Card Próxima Dosis
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFFBEB),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(
-                              Icons.alarm,
-                              color: Color(0xFF92400E),
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Flexible(
-                                      child: Text(
-                                        'Metformina',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.prussianBlue,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.aliceBlue,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: const Text(
-                                        '850mg',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                RichText(
-                                  text: const TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.black54,
-                                    ),
-                                    children: [
-                                      TextSpan(text: 'Próxima toma · '),
-                                      TextSpan(
-                                        text: '20:00',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.prussianBlue,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                      ),
-                      onPressed: () {},
-                      child: const Text(
-                        'Listo',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Card Cita Médica
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_month,
-                        color: Color(0xFF1D4ED8),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Text(
-                                'Cita médica de control',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.prussianBlue,
-                                ),
-                              ),
-                              Text(
-                                'En 4 días',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            '12 sep · 10:30',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.prussianBlue,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: const [
-                              Icon(
-                                Icons.location_on_outlined,
-                                size: 14,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(width: 2),
-                              Text(
-                                'Centro de Salud Morelia',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              if (_medicationReminders.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                  ),
+                  child: const Text(
+                    'No hay recordatorios de tratamientos por ahora.',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                )
+              else
+                ..._medicationReminders.map(_buildTreatmentNotificationCard),
+              const SizedBox(height: 6),
               const SizedBox(height: 16),
 
               // 6. CONTACTO DE EMERGENCIA
@@ -831,7 +960,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Text(
                                   'Contacto de Emergencia',
                                   overflow: TextOverflow.ellipsis,
@@ -842,7 +971,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 Text(
-                                  'Hijo Carlos · +52 443 123 4567',
+                                  _emergencyContactLabel,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 12,
@@ -1379,4 +1508,83 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+enum _TrafficLevel { stable, warning, critical }
+
+class _PatientTrafficState {
+  const _PatientTrafficState({
+    required this.level,
+    required this.badge,
+    required this.title,
+    required this.summary,
+    required this.bullet,
+  });
+
+  final _TrafficLevel level;
+  final String badge;
+  final String title;
+  final String summary;
+  final String bullet;
+
+  IconData get icon {
+    switch (level) {
+      case _TrafficLevel.stable:
+        return Icons.verified_user;
+      case _TrafficLevel.warning:
+        return Icons.warning_amber_rounded;
+      case _TrafficLevel.critical:
+        return Icons.emergency;
+    }
+  }
+
+  _TrafficColors get colors {
+    switch (level) {
+      case _TrafficLevel.stable:
+        return const _TrafficColors(
+          badgeBackground: Color(0xFFDCFCE7),
+          badgeText: Color(0xFF14532D),
+          dot: Color(0xFF16A34A),
+          iconBackground: Color(0xFFE6F9EF),
+          icon: Color(0xFF15803D),
+          soft: Color.fromRGBO(22, 163, 74, 0.14),
+        );
+      case _TrafficLevel.warning:
+        return const _TrafficColors(
+          badgeBackground: Color(0xFFFFF7ED),
+          badgeText: Color(0xFF9A3412),
+          dot: Color(0xFFF59E0B),
+          iconBackground: Color(0xFFFFEDD5),
+          icon: Color(0xFFB45309),
+          soft: Color.fromRGBO(245, 158, 11, 0.14),
+        );
+      case _TrafficLevel.critical:
+        return const _TrafficColors(
+          badgeBackground: Color(0xFFFEE2E2),
+          badgeText: Color(0xFF991B1B),
+          dot: Color(0xFFEF4444),
+          iconBackground: Color(0xFFFEE2E2),
+          icon: Color(0xFFB91C1C),
+          soft: Color.fromRGBO(239, 68, 68, 0.14),
+        );
+    }
+  }
+}
+
+class _TrafficColors {
+  const _TrafficColors({
+    required this.badgeBackground,
+    required this.badgeText,
+    required this.dot,
+    required this.iconBackground,
+    required this.icon,
+    required this.soft,
+  });
+
+  final Color badgeBackground;
+  final Color badgeText;
+  final Color dot;
+  final Color iconBackground;
+  final Color icon;
+  final Color soft;
 }
